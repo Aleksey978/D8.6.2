@@ -2,15 +2,18 @@
 # что в этом представлении мы будем выводить список объектов из БД
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin, LoginRequiredMixin
+from django.contrib.auth.models import User
+from django.core.mail import send_mail
 from django.http import HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404, redirect
+from django.template.loader import render_to_string
 from django.urls import  reverse_lazy
 from django.views.generic import ListView, DetailView, UpdateView, DeleteView
-from django.utils.decorators import method_decorator
+
 
 from .filters import PostFilter
-from .forms import PostForm
-from .models import Post
+from .forms import PostForm, SubscribeForm
+from .models import Post, Author, Category
 
 
 class PostList(ListView):
@@ -38,6 +41,12 @@ class PostDetail(DetailView):
     template_name = 'post.html'
     context_object_name = 'post'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['category'] = self.object.category.all()
+        print(context)
+        return context
+
 @login_required(login_url='/posts/')  # Убедитесь, что URL указан правильно
 @permission_required('news_portal.add_post', login_url='/posts/')
 def post_create(request):
@@ -46,13 +55,17 @@ def post_create(request):
         form = PostForm(request.POST)
         if form.is_valid():
             post = form.save(commit=False)
+            post.author = Author.objects.get(user=request.user)
             if request.path == '/posts/news/create/':
                 post.choose = 'NE'
             elif request.path == '/posts/articles/create/':
                 post.choose = 'AR'
             form.save()
-            return HttpResponseRedirect('/posts/')
+            categories = post.category.all()
+            print(categories)
 
+            # send_post_notification(post)
+            return HttpResponseRedirect('/posts/')
     return render(request, 'post_edit.html', {'form': form})
 
 
@@ -68,3 +81,26 @@ class PostDelete(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     template_name = 'post_delete.html'
     success_url = reverse_lazy('post_list')
     permission_required = 'news_portal.delete_post'
+
+@login_required
+def subscribe(request):
+    if request.method == 'POST':
+        form = SubscribeForm(request.POST)
+        print(request.POST)
+        if form.is_valid():
+            category = get_object_or_404(Category, id=form.cleaned_data['category_id'])
+            category.subscribers.add(request.user)
+            return redirect('/')
+    return redirect('/')
+
+def send_post_notification(post):
+    category = post.category
+    subscribers = category.subscribers.all()
+    subject = post.title
+    message = render_to_string('post_notification_email.html', {
+        'post': post,
+        'username': '{{ user.username }}'
+    })
+    from_email = 'aleksei.tchetvyorkin@yandex.ru'
+    for subscriber in subscribers:
+        send_mail(subject, '', from_email, [subscriber.email], html_message=message)

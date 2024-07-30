@@ -13,4 +13,14 @@ Post
 <h1>{{ post.title|censor }}</h1>
 <p>{{ post.text|censor }}</p>
 <p>{{ post.time_in|date:"j E Y" }}</p>
+<ul>
+    {% for item in category %}
+    <li>{{ item.category_name }}</li>
+    <form action="{% url 'subscribe' %}" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="category_id" value="{{ item.id }}">
+        <button type="submit">Подписаться</button>
+    </form>
+    {% endfor %}
+</ul>
 {% endblock content %}
