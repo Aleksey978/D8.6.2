@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ subject }}</title>
+</head>
+<body>
+    <p>Здравствуй, {{ user.username }}. Вот новые статьи за последнюю неделю:</p>
+    {% for post in posts %}
+        <h1>{{ post.title }}</h1>
+        <p>{{ post.text|truncatewords:50 }}...</p>
+        <a href="{{ base_url }}{% url 'post' post.id %}">{{ post.title }}</a>
+    {% endfor %}
+</body>
+</html>

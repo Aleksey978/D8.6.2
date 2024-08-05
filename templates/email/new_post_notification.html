@@ -2,11 +2,12 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>{{ title }}</title>
+    <title>{{ post.title }}</title>
 </head>
 <body>
-    <p>Здравствуй, {{ username }}. Новая статья в твоём любимом разделе!</p>
-    <h1>{{ title }}</h1>
-    <p>{{ text }}...</p>
+    <p>Здравствуй, {{ user.username }}. Новая статья в твоём любимом разделе!</p>
+    <h1>{{ post.title }}</h1>
+    <p>{{ post.text }}...</p>
+    <a href="{{ base_url }}{% url 'post' post.id %}">{{ post.title }}</a>
 </body>
 </html>

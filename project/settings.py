@@ -15,6 +15,8 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+BASE_URL = 'http://127.0.0.1:8000'
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
@@ -39,7 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.sites',
     'django.contrib.flatpages',
-    'news_portal',
+    'news_portal.apps.NewsPortalConfig',
     'project',
     'sign',
     'django_filters',
@@ -48,6 +50,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.yandex',
     'allauth.socialaccount.providers.google',
+    'django_apscheduler',
 ]
 
 AUTHENTICATION_BACKENDS = [
@@ -90,7 +93,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'project.wsgi.application'
 
-
+# DEFAULT_FROM_EMAIL = 'aleksei.tchetvyorkin@yandex.ru'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
@@ -168,9 +171,20 @@ SOCIALACCOUNT_PROVIDERS = {
     },
 }
 
+
+
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.yandex.ru'
 EMAIL_PORT = 465
-EMAIL_USE_TLS = True
+EMAIL_USE_SSL = True
 EMAIL_HOST_USER = 'aleksei.tchetvyorkin'
 EMAIL_HOST_PASSWORD = 'balonka290191'
+
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER + '@yandex.ru'
+
+ACCOUNT_EMAIL_REQUIRED = True  # Требуется email
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'  # Обязательное подтверждение email
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True  # Автоматический вход после подтверждения email
+
+APSCHEDULER_DATETIME_FORMAT = "N j, Y, f:s a"
+APSCHEDULER_RUN_NOW_TIMEOUT = 25

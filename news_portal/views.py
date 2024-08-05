@@ -1,5 +1,6 @@
 # Импортируем класс, который говорит нам о том,
 # что в этом представлении мы будем выводить список объектов из БД
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin, LoginRequiredMixin
 from django.contrib.auth.models import User
@@ -9,11 +10,13 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.urls import  reverse_lazy
 from django.views.generic import ListView, DetailView, UpdateView, DeleteView
+from datetime import datetime, timedelta
 
 
 from .filters import PostFilter
 from .forms import PostForm, SubscribeForm
 from .models import Post, Author, Category
+from django.conf import settings
 
 
 class PostList(ListView):
@@ -56,15 +59,18 @@ def post_create(request):
         if form.is_valid():
             post = form.save(commit=False)
             post.author = Author.objects.get(user=request.user)
-            if request.path == '/posts/news/create/':
+            if request.path == '/news/create/':
                 post.choose = 'NE'
-            elif request.path == '/posts/articles/create/':
+            elif request.path == '/articles/create/':
                 post.choose = 'AR'
-            form.save()
-            categories = post.category.all()
-            print(categories)
+            try:
+                form.save()
+                messages.error(request, 'Статья успешно создана.')
+            except ValueError:
+                messages.error(request, 'Вы не можете создать больше 3 новостей.')
 
-            # send_post_notification(post)
+            categories = form.cleaned_data['category']
+            send_post_notification(post, categories)
             return HttpResponseRedirect('/posts/')
     return render(request, 'post_edit.html', {'form': form})
 
@@ -93,14 +99,43 @@ def subscribe(request):
             return redirect('/')
     return redirect('/')
 
-def send_post_notification(post):
-    category = post.category
-    subscribers = category.subscribers.all()
+def send_post_notification(post, categories):
+    subscribers = set()
+    for category in categories:
+        subscribers.update(category.subscribers.all())
     subject = post.title
-    message = render_to_string('post_notification_email.html', {
-        'post': post,
-        'username': '{{ user.username }}'
-    })
     from_email = 'aleksei.tchetvyorkin@yandex.ru'
     for subscriber in subscribers:
-        send_mail(subject, '', from_email, [subscriber.email], html_message=message)
+        message = render_to_string('email/new_post_notification.html', {
+            'post': post,
+            'base_url': settings.BASE_URL,
+            'user': subscriber
+        })
+        send_mail(subject=subject, message='', from_email=from_email, recipient_list=[subscriber.email], html_message=message)
+
+
+def send_weekly_post_notifications():
+    # Вычисляем дату, которая была неделю назад
+    one_week_ago = datetime.now() - timedelta(weeks=1)
+
+    # Получаем все статьи, созданные за последнюю неделю
+    recent_posts = Post.objects.filter(time_in__gte=one_week_ago)
+
+    # Собираем всех подписчиков
+    subscribers = set()
+    for post in recent_posts:
+        categories = post.category.all()
+        for category in categories:
+            subscribers.update(category.subscribers.all())
+
+    subject = 'Новые статьи за последнюю неделю'
+    from_email = 'aleksei.tchetvyorkin@yandex.ru'
+
+    for subscriber in subscribers:
+        message = render_to_string('email/weekly_post_notification.html', {
+            'posts': recent_posts,
+            'base_url': settings.BASE_URL,
+            'user': subscriber
+        })
+        send_mail(subject=subject, message='', from_email=from_email, recipient_list=[subscriber.email],
+                  html_message=message)
