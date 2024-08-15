@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin, LoginRequiredMixin
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.urls import  reverse_lazy
@@ -17,7 +17,6 @@ from .filters import PostFilter
 from .forms import PostForm, SubscribeForm
 from .models import Post, Author, Category
 from django.conf import settings
-
 
 class PostList(ListView):
     model = Post
