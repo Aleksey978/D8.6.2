@@ -65,11 +65,12 @@ def post_create(request):
             try:
                 form.save()
                 messages.error(request, 'Статья успешно создана.')
+                categories = form.cleaned_data['category']
+                send_post_notification(post, categories)
             except ValueError:
                 messages.error(request, 'Вы не можете создать больше 3 новостей.')
 
-            categories = form.cleaned_data['category']
-            send_post_notification(post, categories)
+
             return HttpResponseRedirect('/posts/')
     return render(request, 'post_edit.html', {'form': form})
 
